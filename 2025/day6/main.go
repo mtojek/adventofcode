@@ -59,24 +59,97 @@ func part1() {
 	var total int
 
 	for i, op := range operations {
-		var sum int
+		var score int
 		if op == '*' {
-			sum = 1 // fix multiplication
+			score = 1 // fix multiplication
 		}
 
 		for j := 0; j < len(numbers); j++ {
 			if op == '+' {
-				sum += numbers[j][i]
+				score += numbers[j][i]
 			} else {
-				sum *= numbers[j][i]
+				score *= numbers[j][i]
 			}
 		}
 
-		total += sum
+		total += score
 	}
 
 	fmt.Println(total)
 }
 
 func part2() {
+	f, err := os.Open(inputFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	var numbers [][]byte
+	var operations []byte
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+
+		if line[0] == '+' || line[0] == '*' {
+			operations = bytes.ReplaceAll(line, []byte(" "), []byte(""))
+			break
+		}
+
+		t := make([]byte, len(line))
+		copy(t, line)
+		numbers = append(numbers, t)
+	}
+	rotated := rotateNumbers(numbers)
+
+	var total int
+	var j int
+	for i := len(operations) - 1; i >= 0; i-- {
+		op := operations[i]
+
+		var score int
+		if op == '*' {
+			score = 1
+		}
+
+		for j < len(rotated) {
+			if len(bytes.TrimSpace(rotated[j])) == 0 {
+				j++
+				break
+			}
+
+			n, err := strconv.Atoi(string(bytes.TrimSpace(rotated[j])))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if op == '+' {
+				score += n
+			} else {
+				score *= n
+			}
+			j++
+		}
+
+		//fmt.Println(string(op), score)
+		total += score
+	}
+
+	fmt.Println(total)
+}
+
+// rotate matrix 90-degree counter clockwise
+func rotateNumbers(numbers [][]byte) [][]byte {
+	firstLine := numbers[0]
+
+	var rotated [][]byte
+	for i := len(firstLine) - 1; i >= 0; i-- {
+		var r []byte
+		for j := 0; j < len(numbers); j++ {
+			r = append(r, numbers[j][i])
+		}
+		rotated = append(rotated, r)
+	}
+	return rotated
 }
