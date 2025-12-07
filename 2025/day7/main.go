@@ -7,16 +7,14 @@ import (
 	"os"
 )
 
-const (
-	inputFile = "input.txt"
-)
+const inputFile = "input.txt"
 
 func main() {
-	part1()
-	part2()
+	field := part1()
+	part2(field)
 }
 
-func part1() {
+func part1() [][]byte {
 	f, err := os.Open(inputFile)
 	if err != nil {
 		log.Fatal(err)
@@ -35,7 +33,6 @@ func part1() {
 	}
 
 	var total int
-
 	for y := 1; y < len(field); y++ {
 
 		// copy beams from the level above
@@ -57,7 +54,38 @@ func part1() {
 		fmt.Print(string(field[y]))
 		fmt.Println("  ", total)
 	}
+	return field
 }
 
-func part2() {
+func part2(field [][]byte) {
+	prev := make([]int, len(field[0]))
+	for x := 0; x < len(field[0]); x++ {
+		if field[0][x] == 'S' {
+			prev[x] = 1
+		}
+	}
+
+	curr := make([]int, len(field[0]))
+	for y := 1; y < len(field); y++ {
+		for x := 0; x < len(curr); x++ {
+			if x-1 >= 0 && field[y][x-1] == '^' {
+				curr[x] += prev[x-1]
+			}
+			if x+1 < len(field[0]) && field[y][x+1] == '^' {
+				curr[x] += prev[x+1]
+			}
+			if field[y][x] == '|' {
+				curr[x] += prev[x]
+			}
+		}
+
+		copy(prev, curr)
+		curr = make([]int, len(curr))
+	}
+
+	var paths int
+	for x := 0; x < len(prev); x++ {
+		paths += prev[x]
+	}
+	fmt.Println(paths)
 }
