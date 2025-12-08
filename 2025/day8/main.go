@@ -165,6 +165,137 @@ func part1() {
 	fmt.Println(sizes[len(sizes)-1] * sizes[len(sizes)-2] * sizes[len(sizes)-3])
 }
 
+func part2() {
+	f, err := os.Open(inputFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	// Load junction boxes
+	var boxes []junctionBox
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		coords := strings.Split(line, ",")
+
+		x, err := strconv.Atoi(coords[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		y, err := strconv.Atoi(coords[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		z, err := strconv.Atoi(coords[2])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		boxes = append(boxes, junctionBox{
+			x: x,
+			y: y,
+			z: z,
+		})
+	}
+
+	// Calculate distances
+	var shortest []junctionBoxDistance
+	for i := 0; i < len(boxes); i++ {
+		for j := 0; j < len(boxes); j++ {
+			if i == j {
+				continue // can't connect to itself
+			}
+
+			a := boxes[i]
+			b := boxes[j]
+
+			order := []junctionBox{a, b}
+			slices.SortFunc(order, func(a, b junctionBox) int {
+				if a.x < b.x {
+					return -1
+				}
+				if a.x > b.x {
+					return 1
+				}
+
+				if a.y < b.y {
+					return -1
+				}
+				if a.y > b.y {
+					return 1
+				}
+
+				if a.z < b.z {
+					return -1
+				}
+				if a.z > b.z {
+					return 1
+				}
+				return 0
+			})
+
+			distance := math.Sqrt(math.Pow(math.Abs(float64(b.x-a.x)), 2) +
+				math.Pow(math.Abs(float64(b.y-a.y)), 2) +
+				math.Pow(math.Abs(float64(b.z-a.z)), 2))
+
+			jbd := junctionBoxDistance{
+				from:     order[0],
+				to:       order[1],
+				distance: distance,
+			}
+
+			//if !slices.Contains(shortest, jbd) {
+			shortest = append(shortest, jbd)
+			//}
+		}
+	}
+
+	// Order distances ASC
+	slices.SortFunc(shortest, func(d1, d2 junctionBoxDistance) int {
+		if d1.distance < d2.distance {
+			return -1
+		}
+		if d1.distance > d2.distance {
+			return 1
+		}
+		return 0
+	})
+
+	// Join circuits
+	circuits := [][]string{}
+	for _, box := range boxes {
+		circuits = append(circuits, []string{box.String()})
+	}
+
+	for i := 0; i < len(shortest); i += 2 {
+		d := shortest[i]
+
+		for i, c := range circuits {
+			if slices.Contains(c, d.from.String()) && slices.Contains(c, d.to.String()) {
+				break
+			} else if slices.Contains(c, d.from.String()) && !slices.Contains(c, d.to.String()) {
+				t := circuits[i]
+				circuits[i] = append(t, d.to.String())
+			} else if !slices.Contains(c, d.from.String()) && slices.Contains(c, d.to.String()) {
+				t := circuits[i]
+				circuits[i] = append(t, d.from.String())
+			}
+		}
+
+		circuits = merge(circuits)
+
+		if len(circuits) == 1 {
+			fmt.Println(d.from, d.to)
+			fmt.Println(d.from.x * d.to.x)
+			break
+		}
+	}
+}
+
 func merge(circuits [][]string) [][]string {
 	merge := true
 	for merge {
@@ -235,7 +366,4 @@ type junctionBoxDistance struct {
 	to   junctionBox
 
 	distance float64
-}
-
-func part2() {
 }
