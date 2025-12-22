@@ -2,15 +2,19 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"log"
+	"maps"
+	"math"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
 
 const (
-	inputFile = "input0.txt"
+	inputFile = "input.txt"
 )
 
 func main() {
@@ -33,14 +37,15 @@ func part1() {
 		line := scanner.Text()
 
 		i := strings.Index(line, "]")
-		lights := line[1:i]
-
 		j := strings.Index(line, "{")
-		strButtonGroups := line[i+2:]
+
+		lights := line[1:i]
+		strButtonGroups := line[i+2 : j-1]
 		buttonGroups := strings.Split(strButtonGroups, " ")
 
 		var buttons [][]int
 		for _, buttonGroup := range buttonGroups {
+
 			bg := buttonGroup[1 : len(buttonGroup)-1]
 			sbg := strings.Split(bg, ",")
 
@@ -83,14 +88,60 @@ func part1() {
 		fmt.Print(" ")
 		fmt.Println(m.joltage)
 	}
-	fmt.Println(machines)
+
+	// Toggle all machines
+	var sum int
+	for i, m := range machines {
+		fmt.Println(i)
+
+		m := toggleLights(m.lights, m.buttons, initLights(m.lights), map[int]bool{})
+		sum += m
+	}
+	fmt.Println(sum)
 }
 
-func part2() {
+func initLights(lights []byte) []byte {
+	return bytes.Repeat([]byte{'.'}, len(lights))
+}
+
+func toggleLights(lights []byte, buttons [][]int, currentLights []byte, pressedButtons map[int]bool) int {
+	min := math.MaxInt
+	for i, button := range buttons {
+		if _, pressed := pressedButtons[i]; pressed {
+			continue
+		}
+
+		nextPressedButtons := maps.Clone(pressedButtons)
+		nextPressedButtons[i] = true
+
+		nextLights := slices.Clone(currentLights)
+		for _, lightIndex := range button {
+			val := nextLights[lightIndex]
+			if val == '.' {
+				val = '#'
+			} else {
+				val = '.'
+			}
+			nextLights[lightIndex] = val
+		}
+
+		if bytes.Equal(lights, nextLights) {
+			return len(nextPressedButtons)
+		}
+
+		m := toggleLights(lights, buttons, nextLights, nextPressedButtons)
+		if m < min {
+			min = m
+		}
+	}
+	return min
 }
 
 type machine struct {
 	lights  []byte
 	buttons [][]int
 	joltage []int
+}
+
+func part2() {
 }
