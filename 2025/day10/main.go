@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"maps"
 	"math"
 	"os"
 	"slices"
@@ -92,46 +91,38 @@ func part1() {
 	// Toggle all machines
 	var sum int
 	for i, m := range machines {
-		fmt.Println(i)
+		fmt.Println("iter:", i)
 
-		m := toggleLights(m.lights, m.buttons, initLights(m.lights), map[int]bool{})
+		startState := bytes.Repeat([]byte{'.'}, len(m.lights))
+		m := toggleLights(m.lights, m.buttons, startState, 0)
+
 		sum += m
 	}
 	fmt.Println(sum)
 }
 
-func initLights(lights []byte) []byte {
-	return bytes.Repeat([]byte{'.'}, len(lights))
-}
+func toggleLights(lights []byte, buttons [][]int, currentLights []byte, nextButton int) int {
+	if bytes.Equal(lights, currentLights) {
+		return 0
+	}
 
-func toggleLights(lights []byte, buttons [][]int, currentLights []byte, pressedButtons map[int]bool) int {
 	min := math.MaxInt
-	for i, button := range buttons {
-		if _, pressed := pressedButtons[i]; pressed {
-			continue
-		}
-
-		nextPressedButtons := maps.Clone(pressedButtons)
-		nextPressedButtons[i] = true
-
+	for i := nextButton; i < len(buttons); i++ {
 		nextLights := slices.Clone(currentLights)
-		for _, lightIndex := range button {
-			val := nextLights[lightIndex]
-			if val == '.' {
-				val = '#'
+		for _, lightIndex := range buttons[i] {
+			if nextLights[lightIndex] == '.' {
+				nextLights[lightIndex] = '#'
 			} else {
-				val = '.'
+				nextLights[lightIndex] = '.'
 			}
-			nextLights[lightIndex] = val
 		}
 
-		if bytes.Equal(lights, nextLights) {
-			return len(nextPressedButtons)
-		}
-
-		m := toggleLights(lights, buttons, nextLights, nextPressedButtons)
-		if m < min {
-			min = m
+		m := toggleLights(lights, buttons, nextLights, i+1)
+		if m != math.MaxInt {
+			m++
+			if m < min {
+				min = m
+			}
 		}
 	}
 	return min
