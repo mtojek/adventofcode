@@ -10,18 +10,22 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"gonum.org/v1/gonum/mat"
+	"gonum.org/v1/gonum/optimize/convex/lp"
 )
 
 const (
 	inputFile = "input.txt"
 )
 
-func main() {
-	part1()
-	part2()
+type machine struct {
+	lights  []byte
+	buttons [][]int
+	joltage []int
 }
 
-func part1() {
+func main() {
 	f, err := os.Open(inputFile)
 	if err != nil {
 		log.Fatal(err)
@@ -88,7 +92,11 @@ func part1() {
 		fmt.Println(m.joltage)
 	}
 
-	// Toggle all machines
+	part1(machines)
+	part2(machines)
+}
+
+func part1(machines []machine) {
 	var sum int
 	for i, m := range machines {
 		fmt.Println("iter:", i)
@@ -128,11 +136,35 @@ func toggleLights(lights []byte, buttons [][]int, currentLights []byte, nextButt
 	return min
 }
 
-type machine struct {
-	lights  []byte
-	buttons [][]int
-	joltage []int
+func part2(machines []machine) {
+	var sum int
+	for _, m := range machines {
+
+		// minimize number of pressed buttons
+		c := []float64{1, 1, 1, 1, 1, 1}
+
+		// equality: A * x = b
+		A := mat.NewDense(len(m.joltage), len(m.lights), []float64{
+			// FIXME
+		})
+		b := joltageToFloat(m.joltage)
+
+		// solve now
+		min, x, err := lp.Simplex(c, A, b, 0.0, nil)
+		if err != nil {
+			log.Fatal("simplex error:", err)
+		}
+
+		fmt.Println(min, x)
+		sum += int(min)
+	}
+	fmt.Println(sum)
 }
 
-func part2() {
+func joltageToFloat(joltage []int) []float64 {
+	f := make([]float64, len(joltage))
+	for i, j := range joltage {
+		f[i] = float64(j)
+	}
+	return f
 }
