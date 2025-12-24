@@ -2,4 +2,4 @@ module github.com/mtojek/adventofcode/2025/day1
 
 go 1.23.0
 
-require gonum.org/v1/gonum v0.16.0
+require github.com/draffensperger/golp v0.0.0-20250721104811-2d405f0b4e68

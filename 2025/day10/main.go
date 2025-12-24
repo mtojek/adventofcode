@@ -11,8 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/optimize/convex/lp"
+	"github.com/draffensperger/golp"
 )
 
 const (
@@ -32,7 +31,6 @@ func main() {
 	}
 	defer f.Close()
 
-	// Load machine configuration
 	var machines []machine
 
 	scanner := bufio.NewScanner(f)
@@ -48,7 +46,6 @@ func main() {
 
 		var buttons [][]int
 		for _, buttonGroup := range buttonGroups {
-
 			bg := buttonGroup[1 : len(buttonGroup)-1]
 			sbg := strings.Split(bg, ",")
 
@@ -60,7 +57,6 @@ func main() {
 				}
 				btns = append(btns, button)
 			}
-
 			buttons = append(buttons, btns)
 		}
 
@@ -83,16 +79,7 @@ func main() {
 		})
 	}
 
-	// Display machines
-	for _, m := range machines {
-		fmt.Print(string(m.lights))
-		fmt.Print(" ")
-		fmt.Print(m.buttons)
-		fmt.Print(" ")
-		fmt.Println(m.joltage)
-	}
-
-	part1(machines)
+	//part1(machines)
 	part2(machines)
 }
 
@@ -138,33 +125,41 @@ func toggleLights(lights []byte, buttons [][]int, currentLights []byte, nextButt
 
 func part2(machines []machine) {
 	var sum int
-	for _, m := range machines {
+	for idx, m := range machines {
+		cols := len(m.buttons)
+
+		lp := golp.NewLP(0, cols)
 
 		// minimize number of pressed buttons
-		c := []float64{1, 1, 1, 1, 1, 1}
+		c := make([]float64, cols)
+		for i := range c {
+			c[i] = 1
+		}
+		lp.SetObjFn(c)
 
-		// equality: A * x = b
-		A := mat.NewDense(len(m.joltage), len(m.lights), []float64{
-			// FIXME
-		})
-		b := joltageToFloat(m.joltage)
-
-		// solve now
-		min, x, err := lp.Simplex(c, A, b, 0.0, nil)
-		if err != nil {
-			log.Fatal("simplex error:", err)
+		// equality constraints for each counter
+		for i, jolt := range m.joltage {
+			row := make([]float64, cols)
+			for j, btn := range m.buttons {
+				if slices.Contains(btn, i) {
+					row[j] = 1
+				}
+			}
+			lp.AddConstraint(row, golp.EQ, float64(jolt))
 		}
 
-		fmt.Println(min, x)
-		sum += int(min)
+		// variables must be integers
+		for j := 0; j < cols; j++ {
+			lp.SetInt(j, true)
+		}
+
+		status := lp.Solve()
+		if status != golp.OPTIMAL {
+			log.Fatalf("No solution for machine %d: %v", idx, status)
+		}
+
+		min := lp.Objective()
+		sum += int(math.Round(min))
 	}
 	fmt.Println(sum)
-}
-
-func joltageToFloat(joltage []int) []float64 {
-	f := make([]float64, len(joltage))
-	for i, j := range joltage {
-		f[i] = float64(j)
-	}
-	return f
 }
