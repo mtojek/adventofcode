@@ -8,14 +8,7 @@ import (
 	"strings"
 )
 
-const (
-	inputFile = "input1.txt"
-)
-
-var (
-	paths         = map[string]int{}
-	numberOfPaths func(deviceName string) int
-)
+const inputFile = "input.txt"
 
 func main() {
 	f, err := os.Open(inputFile)
@@ -37,33 +30,76 @@ func main() {
 		devices[deviceName] = outputs
 	}
 
-	numberOfPaths = func(deviceName string) int {
-		if deviceName == "out" {
+	part1(devices)
+	part2(devices)
+}
+
+func part1(devices map[string][]string) {
+	paths := map[string]int{}
+	var numberOfPaths func(current, destination string) int
+	numberOfPaths = func(current, destination string) int {
+		if current == destination {
 			return 1
 		}
 
-		if val, ok := paths[deviceName]; ok {
+		if val, ok := paths[current]; ok {
 			return val
 		}
 
 		sum := 0
-		for _, o := range devices[deviceName] {
-			sum += numberOfPaths(o)
+		for _, o := range devices[current] {
+			sum += numberOfPaths(o, destination)
 		}
-		paths[deviceName] = sum
+		paths[current] = sum
 		return sum
 	}
 
-	part1()
-	part2()
-}
-
-func part1() {
-	total := numberOfPaths("you")
+	total := numberOfPaths("you", "out")
 	fmt.Println(total)
 }
 
-func part2() {
-	total := numberOfPaths("svr")
+func part2(devices map[string][]string) {
+	type key struct {
+		deviceName string
+		fft        bool
+		dac        bool
+	}
+	paths := map[key]int{}
+
+	var numberOfPaths func(current key, destination string) int
+	numberOfPaths = func(current key, destination string) int {
+		if current.deviceName == "fft" {
+			current.fft = true
+		}
+		if current.deviceName == "dac" {
+			current.dac = true
+		}
+
+		if current.deviceName == "out" {
+			if current.fft && current.dac {
+				return 1
+			}
+			return 0
+		}
+
+		if val, ok := paths[current]; ok {
+			return val
+		}
+
+		sum := 0
+		for _, next := range devices[current.deviceName] {
+			sum += numberOfPaths(key{
+				deviceName: next,
+				fft:        current.fft,
+				dac:        current.dac,
+			}, destination)
+		}
+		paths[current] = sum
+		return sum
+	}
+
+	total := numberOfPaths(key{
+		deviceName: "svr",
+	}, "out")
 	fmt.Println(total)
 }
